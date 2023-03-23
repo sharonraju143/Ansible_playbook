@@ -1,0 +1,19 @@
+---
+- name: create web server
+  hosts: localhost
+  tasks:
+    - name: start an instance with a public IP address
+      amazon.aws.ec2_instance:
+        name: Demo-Windows-server
+        key_name: DevOps
+        region: ap-south-1
+        vpc_subnet_id: subnet-013aea45df5089c68
+        instance_type: t2.micro
+        security_group: default
+        image_id: ami-0bd3f43f107376d6b
+        network:
+          assign_public_ip: true
+        tags: 
+          name: Demo-Windows-server
+      register: windows_server_result
+   

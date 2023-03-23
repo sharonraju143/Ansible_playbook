@@ -1,0 +1,50 @@
+- name: Create Auto Scaling Group and Launch Configuration
+  hosts: localhost
+  gather_facts: false
+  vars:
+    region: ap-south-1
+    asg_name: Demo-ASG
+    lc_name: Demo-LC
+    ami_id: ami-021406cd3ecb31796
+    instance_type: t2.micro
+    key_name: DevOps
+    load_balancers: Demoapplicationlb
+    security_groups: ["sg-0407e3f8aad7c0cba"]
+    vpc_zone_identifier: ["subnet-032ce077820e0211a", "subnet-0d06e61516caea1a9"]
+    min_size: 1
+    max_size: 1
+    desired_size: 1
+    health_check_period: 300
+    health_check_type: EC2
+    target_group_arns: ["arn:aws:elasticloadbalancing:ap-south-1:028917004740:listener/app/Demoapplicationlb/c4ec39cb22f54d02/54f2a12c8115c744"]
+    tags:
+      - key: Name
+        value: Demo-ASG
+  tasks:
+    - name: Create Launch Configuration
+      community.aws.autoscaling_launch_config:
+        name: "{{ lc_name }}"
+        image_id: "{{ ami_id }}"
+        instance_type: "{{ instance_type }}"
+        key_name: "{{ key_name }}"
+        security_groups: "{{ security_groups }}"
+        region: "{{ region }}"
+        assign_public_ip: true
+      register: lc
+
+    - name: Create Auto Scaling Group
+      amazon.aws.autoscaling_group:
+        name: "{{ asg_name }}"
+        launch_config_name: "{{ lc_name }}"
+        availability_zones: "{{ region }}a,{{ region }}b"
+        min_size: "{{ min_size }}"
+        max_size: "{{ max_size }}"
+        desired_capacity: "{{ desired_size }}"
+        health_check_period: "{{ health_check_period }}"
+        health_check_type: "{{ health_check_type }}"
+        target_group_arns: "{{ target_group_arns }}"
+        vpc_zone_identifier: "{{ vpc_zone_identifier }}"
+        load_balancers: "{{ load_balancers }}"
+        region: "{{ region }}"
+        tags: "{{ tags }}"
+      

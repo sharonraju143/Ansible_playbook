@@ -1,0 +1,161 @@
+- hosts: n1
+  tasks:
+    - name: create a VPC
+      ec2_vpc_net:
+        name: Demo_vpc
+        cidr_block: 10.0.0.0/16
+        region: ap-south-1
+        state: present
+        tenancy: default
+        aws_access_key: "AKIAQNO4WPHCHPWMJF4J"
+        aws_secret_key: "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"
+      register: vpc_result
+
+    - name: Create public subnet 1 in zone1
+      ec2_vpc_subnet:
+        state: present
+        vpc_id: "{{ vpc_result.vpc.id }}"
+        region: ap-south-1
+        az: ap-south-1a
+        cidr: 10.0.1.0/24
+        map_public: yes
+        tags:
+          Name: Demo_Pub_Sub1
+
+    - name: Create public subnet 2 in zone2
+      ec2_vpc_subnet:
+        state: present
+        vpc_id: "{{ vpc_result.vpc.id }}"
+        region: ap-south-1
+        az: ap-south-1b
+        cidr: 10.0.2.0/24
+        map_public: yes
+        tags:
+          Name: Demo_Pub_Sub2
+
+    - name: Create private subnet 1 in zone1
+      ec2_vpc_subnet:
+        state: present
+        vpc_id: "{{ vpc_result.vpc.id }}"
+        region: ap-south-1
+        az: ap-south-1a
+        cidr: 10.0.3.0/24
+        tags:
+          Name: Demo__Pvt_Sub1
+
+
+
+    - name: Create private subnet 2 in zone2
+      ec2_vpc_subnet:
+        state: present
+        vpc_id: "{{ vpc_result.vpc.id }}"
+        region: ap-south-1
+        az: ap-south-1b
+        cidr: 10.0.4.0/24
+        tags:
+          Name: Demo__Pvt_Sub2
+
+    - name: Internet gateway setup
+      ec2_vpc_igw:
+        vpc_id: "{{ vpc_result.vpc.id }}"
+        state: present
+        region: ap-south-1
+        tags:
+          Name: Demo_igw
+      register: internet_gateway_result
+    
+
+    - name: Set up public subnet route table
+      ec2_vpc_route_table:
+        vpc_id: "{{ vpc_result.vpc.id }}"
+        region: ap-south-1
+        tags:
+          Name: Demo_Pub_RT
+        subnets:
+          - 10.0.1.0/24
+          - 10.0.2.0/24
+        routes:
+          - dest: 0.0.0.0/0
+            gateway_id: "{{ internet_gateway_result.gateway_id }}" 
+
+
+  
+    - name: Private Subnet Route Table
+      ec2_vpc_route_table:
+        vpc_id: "{{ vpc_result.vpc.id }}"
+        region: ap-south-1
+        tags:
+          Name: Demo__Pvt_RT
+        subnets:
+          - 10.0.3.0/24
+          - 10.0.4.0/24
+
+    - name: creation of web server security group
+      amazon.aws.ec2_security_group:
+        name: Demo-Web-Server-SG
+        description: Demo-Web-Server-SG
+        vpc_id: "{{ vpc_result.vpc.id }}"
+        region: ap-south-1
+        rules:
+          - proto: tcp
+            from_port: 80
+            to_port: 80
+            cidr_ip: 0.0.0.0/0
+          - proto: tcp
+            from_port: 22
+            to_port: 22
+            cidr_ip: 0.0.0.0/0
+      register: sg_web_server_result
+
+
+    - name: creation of rds security group
+      amazon.aws.ec2_security_group:
+        name: Demo-rds-SG
+        description: Demo-rds-SG
+        vpc_id: "{{ vpc_result.vpc.id }}"
+        region: ap-south-1
+        rules:
+          - proto: tcp
+            from_port: 3306
+            to_port: 3306
+            cidr_ip: 0.0.0.0/0
+      register: rds_sg_result
+
+    
+     - name: Create Auto Scaling Launch Configuration
+       ec2_lc:
+         region: ap-south-1
+         image_id: ami-0d81306eddc614a45
+         instance_type: t2.micro
+         key_name: DevOps.pem
+         vpc_id: "{{ vpc_result.vpc.id }}"
+         associate_public_ip: yes
+         name: my-launch-config
+         security_group_ids: "{{ sg_web_server_result.security_group_ids }}"
+         user_data: |
+         #!/bin/bash
+         yum update -y
+         amazon-linux-extras install -y lamp-mariadb10.2-php7.2 php7.2
+         yum install -y httpd mariadb-server
+         systemctl start httpd
+         systemctl enable httpd
+         usermod -a -G apache ec2-user
+         chown -R ec2-user:apache /var/www
+         chmod 2775 /var/www
+         find /var/www -type d -exec chmod 2775 {} \;
+         find /var/www -type f -exec chmod 0664 {} \;
+         git clone https://github.com/JaiTrieTree/AWS-Project.git
+       register: lc_result
+
+     - name: Creating Auto Scaling Group
+       amazon.aws.autoscaling_group:
+         name: Demo-ASG
+         launch_config_name: "{{ lc_result.launch_config_name }}"
+         health_check_period: 60
+         health_check_type: ELB
+         min_size: 2
+         max_size: 2
+         desired_capacity: 2
+         region: ap-south-1
+
+

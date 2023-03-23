@@ -1,0 +1,32 @@
+---
+- name: create web server 
+  hosts: localhost 
+  tasks: 
+    - name: start an instance with a public IP address
+      amazon.aws.ec2_instance:
+        name: Demo-Web-Server
+        key_name: DevOps
+        region: ap-south-1
+        vpc_subnet_id: subnet-0437e8581e051b415
+        instance_type: t2.micro
+        security_group: Demo-Web-Server-SG
+        network:
+          assign_public_ip: true
+        user_data: |
+          #!/bin/bash
+           yum update -y
+           amazon-linux-extras install -y lamp-mariadb10.2-php7.2 php7.2
+           yum install -y httpd mariadb-server
+           systemctl start httpd
+           systemctl enable httpd
+           usermod -a -G apache ec2-user
+           chown -R ec2-user:apache /var/www
+           chmod 2775 /var/www
+           find /var/www -type d -exec chmod 2775 {} \;
+           find /var/www -type f -exec chmod 0664 {} \;
+           yum install -y git
+           sudo git clone https://github.com/JaiTrieTree/AWS-Project.git /var/www/html
+        image_id: ami-0d81306eddc614a45
+        tags:
+          name: Demo-Web-Server
+

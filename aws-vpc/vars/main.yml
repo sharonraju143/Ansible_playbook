@@ -1,0 +1,28 @@
+---
+# vars file for aws-vpc
+aws_access_key: ""
+aws_secret_key: ""
+region: "ap-south-2"
+
+# VPC
+vpc_cidr: 10.0.0.0/16
+vpc_name: "Demo_vpc"
+
+# Subnet
+subnet_name_1: "Demo_public_subnet_1"
+subnet_cidr_1: 10.0.1.0/24
+
+
+subnet_name_2: "Demo_public_subnet_1"
+subnet_cidr_2: 10.0.2.0/26
+
+igw_name: "Demo_IGW"
+
+
+#route table name
+public_route_name: "Demo_Public_RT"
+private_route_name: "Demo_Private_RT"
+securitygroup_name_1: "Demo_Web_Security_Group"
+securitygroup_name_2: "Demo_RDS_Security_Group"
+
+

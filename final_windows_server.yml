@@ -1,0 +1,43 @@
+---
+- name: Create Windows Server instance and install IIS
+  hosts: localhost
+  gather_facts: false
+
+  vars:
+    region: "ap-south-1"
+    instance_type: "t2.medium"
+    ami_id: "ami-0bd3f43f107376d6b"
+    key_name: "DevOps"
+    security_groups: "sg-00a13ac591909140a"
+    subnet_id: "subnet-013aea45df5089c68"
+    iis_feature_name: "Web-Server"
+    admin_password: "123456789"
+    assign_public_ip: true
+  tasks:
+    - name: Launch Windows Server instance
+      amazon.aws.ec2_instance:
+        region: "{{ region }}"
+        instance_type: "{{ instance_type }}"
+        image_id: "{{ ami_id }}"
+        key_name: "{{ key_name }}"
+        security_groups: "{{ security_groups }}"
+        subnet_id: "{{ subnet_id }}"
+        network:
+          assign_public_ip: true
+        tags:
+          Name: Demo-windows-server
+      register: ec2_instance
+
+    - name: Get server name
+      win_shell: hostname
+      register: ec2_instance
+
+    - name: Install IIS
+      win_feature:
+        name: Web-Server
+        state: present
+      become: true
+      become_method: runas
+      become_user: "{{ ec2_instance.stdout }}"
+
+    

@@ -1,0 +1,21 @@
+- name: Creating three tier architecture
+  hosts: localhost
+  gather_facts: true
+  vars:
+    vpc_cidr_block: 10.0.0.0/16
+    vpc_name: my-vpc
+    subnet_cidr_block: 10.0.1.0/24
+    subnet_name: my-subnet
+    igw_name: my-internet-gateway
+    route_table_name: my-route-table
+    security_group_name: my-security-group 
+  tasks:
+    - name: Create VPC
+      ec2_vpc:
+        cidr_block: "{{ vpc_cidr_block }}"
+        region: "{{ region }}"
+        state: present
+        tags:
+          Name: "{{ vpc_name }}"
+  register: vpc_info
+

@@ -1,0 +1,16 @@
+- name: create windows server and IIS
+  hosts: localhost
+  gather_facts: false 
+  tasks:
+    - name: Create a Windows Server
+      win_server: 
+        name: windows
+        domain_admin_user: sharon
+        domain_admin_password: 123456789
+        state: present
+
+    - name: Install IIS
+      win_feature: 
+        name: Web-Server
+        state: present
+

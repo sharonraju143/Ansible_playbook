@@ -1,0 +1,46 @@
+- name: Create auto scaling group with launch configuration
+  hosts: localhost
+  gather_facts: False
+  vars:
+    region: ap-south-1
+    launch_config_name: my-launch-config
+    auto_scaling_group_name: my-auto-scaling-group
+    subnet_ids:
+      - subnet-0189a87bc33a5cda2
+      - subnet-051967dea01b29fa9
+    security_group_ids:
+      - sg-00a203f6052557a2c
+    image_id: ami-0d81306eddc614a45
+    instance_type: t2.micro
+    key_name: thor
+    min_size: 1
+    max_size: 3
+    desired_capacity: 2
+    health_check_type: EC2
+    health_check_grace_period: 300
+    tags:
+      - key: Name
+        value: my-auto-scaling-group
+  tasks:
+    - name: Create launch configuration
+      ec2_lc:
+        name: "{{ launch_config_name }}"
+        image_id: "{{ image_id }}"
+        instance_type: "{{ instance_type }}"
+        key_name: "{{ key_name }}"
+        security_groups: "{{ security_group_ids }}"
+        region: "{{ region }}"
+      register: lc_result     - name: Create auto scaling group
+      ec2_asg:
+        name: "{{ auto_scaling_group_name }}"
+        launch_config_name: "{{ launch_config_name }}"
+        min_size: "{{ min_size }}"
+        max_size: "{{ max_size }}"
+        desired_capacity: "{{ desired_capacity }}"
+        region: "{{ region }}"
+        vpc_zone_identifier: "{{ subnet_ids | join(',') }}"
+        health_check_type: "{{ health_check_type }}"
+        health_check_period: "{{ health_check_grace_period }}"
+        tags: "{{ tags }}"
+        state: present
+      register: asg_result

@@ -1,0 +1,25 @@
+---
+- name: creating three-tier architecture
+  hosts: localhost
+  tasks:
+    - name: Create RDS subnet group
+      amazon.aws.rds_subnet_group:
+        name: rds-subnet-group
+        state: present
+        description: subnet group for rds
+        region: ap-south-1
+        vpc_id: vpc-03ccb5fabea178851
+        subnet_availability_zones:  [ 'ap-south-1a' , 'ap-south-1b' ]
+        subnet_ids: [ 'subnet-092c24f44d42d7d15' , 'subnet-0af6071882875ad45' ] 
+
+    - name: creating RDS 
+      amazon.aws.rds_instance:
+        engine: MYSQL
+        db_instance_identifier: demo-rds
+        instance_type: db.t2.small
+        password: admin@123
+        username: admin
+        allocated_storage: gp2
+        vpc_security_group_ids: demo-vpc-security-group
+
+
